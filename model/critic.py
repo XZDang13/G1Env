@@ -14,6 +14,6 @@ class ValueNet(nn.Module):
     def forward(self, x:torch.Tensor) -> torch.Tensor:
         x = self.layers(x)
 
-        value = self.value(x)
+        step = self.value(x)
 
-        return value
+        return step

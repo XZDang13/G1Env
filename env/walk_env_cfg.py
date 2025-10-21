@@ -9,7 +9,7 @@ from isaaclab.assets import ArticulationCfg
 from isaaclab.managers import EventTermCfg as EventTerm
 from isaaclab.managers import SceneEntityCfg
 
-from .G1_23_DOF_CFG import G1_Static_CFG
+from .G1_23_DOF_CFG import G1_CFG
 
 @configclass
 class EventCfg:
@@ -81,7 +81,7 @@ class G1WalkEnvCfg(DirectRLEnvCfg):
     action_space = 23
     state_space = 0
 
-    action_scale = 0.25
+    action_scale = 0.5
 
     early_termination = True
     termination_height = 0.5
@@ -115,10 +115,10 @@ class G1WalkEnvCfg(DirectRLEnvCfg):
     )
 
     scene:InteractiveSceneCfg = InteractiveSceneCfg(
-        num_envs=12, env_spacing=4.0, replicate_physics=True
+        num_envs=1, env_spacing=4.0, replicate_physics=True
     )
 
-    robot:ArticulationCfg = G1_Static_CFG.replace(prim_path="/World/envs/env_.*/Robot")
+    robot:ArticulationCfg = G1_CFG.replace(prim_path="/World/envs/env_.*/Robot")
 
     events: EventCfg = EventCfg()
 

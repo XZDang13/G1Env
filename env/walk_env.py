@@ -34,7 +34,7 @@ class G1WalkEnv(DirectRLEnv):
 
     def _pre_physics_step(self, actions: torch.Tensor):
         self.actions = actions.clone()
-        self.processed_actions = self.cfg.action_scale * self.actions + self.robot.data.default_joint_pos
+        self.processed_actions = self.cfg.action_scale * self.actions + self.robot.data.joint_pos
 
     def _apply_action(self):
         self.robot.set_joint_position_target(self.processed_actions)
@@ -73,12 +73,9 @@ class G1WalkEnv(DirectRLEnv):
     def _get_rewards(self) -> torch.Tensor:
         return (
             1.0 * self._height_reward() +
-            2.0 * self._xy_velocity_reward() +
-            2.0 * self._yaw_angel_velocity_reward() +
-            -1.0 * self._z_velocity_reward() +
-            -0.1 * self._difference_to_default_reward() +
-            -0.01 * self._get_action_rate_reward() +
-            -0.01 * self._joint_velocity_penalty()
+            1.0 * self._xy_velocity_reward() +
+            1.0 * self._yaw_angel_velocity_reward() +
+            -1.0 * self._difference_to_default_reward()
         )
 
     def _height_reward(self) -> torch.Tensor:
@@ -138,8 +135,11 @@ class G1WalkEnv(DirectRLEnv):
             self.episode_length_buf[:] = torch.randint_like(self.episode_length_buf, high=int(self.max_episode_length))
         self.actions[env_ids] = 0.0
         self.previous_actions[env_ids] = 0.0
-        self.commands[env_ids] = torch.zeros_like(self.commands[env_ids]).uniform_(-1.0, 1.0)
+        #self.commands[env_ids] = torch.zeros_like(self.commands[env_ids]).uniform_(-1.0, 1.0)
         #self.commands[env_ids] *= self.commands_scale
+
+        self.commands[env_ids] = torch.zeros_like(self.commands[env_ids])
+        
         joint_pos = self.robot.data.default_joint_pos[env_ids]
         joint_vel = self.robot.data.default_joint_vel[env_ids]
 

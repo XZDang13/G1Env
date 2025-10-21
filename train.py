@@ -22,7 +22,7 @@ import torch.optim as optim
 from tqdm import trange
 
 from RLAlg.alg.ppo import PPO
-from RLAlg.utils import set_seed_everywhere
+from RLAlg.nn.steps import StochasticContinuousPolicyStep, ValueStep
 from RLAlg.buffer.replay_buffer import ReplayBuffer, compute_gae
 
 from model.encoder import EncoderNet
@@ -37,7 +37,9 @@ def process_obs(obs):
 
 class Trainer:
     def __init__(self):
-        self.env = gymnasium.make("G1Walk-v0", cfg=G1WalkEnvCfg())
+        cfg = G1WalkEnvCfg()
+        cfg.scene.num_envs = 4096
+        self.env = gymnasium.make("G1Walk-v0", cfg=cfg)
 
         self.env_nums, self.obs_dim = self.env.observation_space.shape
 
@@ -48,18 +50,14 @@ class Trainer:
         self.encoder = EncoderNet(self.obs_dim, [512, 512]).to(self.device)
         self.actor = ActorLearnNet(self.encoder.dim, self.action_dim, [512]).to(self.device)
         self.critic = ValueNet(self.encoder.dim, [512]).to(self.device)
-
-        #encoder_params, actor_params, critic_params = torch.load("model.pth")
-        #self.encoder.load_state_dict(encoder_params)
-        #self.actor.load_state_dict(actor_params)
-        #self.critic.load_state_dict(critic_params)
+        
 
         self.optimizer = optim.Adam(
             list(self.encoder.parameters()) + list(self.actor.parameters()) + list(self.critic.parameters()), 
             lr=3e-4
         )
 
-        self.steps = 50
+        self.steps = 25
 
         self.rollout_buffer = ReplayBuffer(self.env_nums, self.steps)
 
@@ -74,7 +72,7 @@ class Trainer:
         
         self.obs = None
 
-        self.epochs = 2000
+        self.epochs = 1000
         self.update_iteration = 5
         self.batch_size = self.env_nums * 10
         self.gamma = 0.99
@@ -91,12 +89,14 @@ class Trainer:
     @torch.no_grad()
     def get_action(self, obs_batch:list[list[float]], determine:bool=False):
         obs_batch = self.encoder(obs_batch)
-        pi, action, log_prob = self.actor(obs_batch)
-        
+        actor_step:StochasticContinuousPolicyStep = self.actor(obs_batch)
+        action = actor_step.action
+        log_prob = actor_step.log_prob
         if determine:
-            action = pi.mean
+            action = actor_step.mean
         
-        value = self.critic(obs_batch)
+        critic_step:ValueStep = self.critic(obs_batch)
+        value = critic_step.value
 
         return action, log_prob, value
     
